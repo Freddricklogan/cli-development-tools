@@ -1,5 +1,8 @@
 # CLI Development Tools
 
+**[Live demo / docs](https://freddricklogan.github.io/cli-development-tools/)** &nbsp;|&nbsp; [Portfolio](https://fredlogan.phd) &nbsp;|&nbsp; [All Projects](https://freddricklogan.github.io/projects/)
+
+
 A collection of five command-line tools for common development tasks, built with Node.js and Python.
 
 ## Tools
