@@ -1,0 +1,6 @@
+node_modules/
+dist/
+coverage/
+sbom.cdx.json
+*.tgz
+.DS_Store
