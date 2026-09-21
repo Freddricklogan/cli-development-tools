@@ -1,79 +1,156 @@
-# CLI Development Tools
+# cli-development-tools: five development chores in one tested TypeScript command
 
-**[Live demo / docs](https://freddricklogan.github.io/cli-development-tools/)** &nbsp;|&nbsp; [Portfolio](https://fredlogan.phd) &nbsp;|&nbsp; [All Projects](https://freddricklogan.github.io/projects/)
+[![CI/CD](https://github.com/Freddricklogan/cli-development-tools/actions/workflows/deploy.yml/badge.svg)](https://github.com/Freddricklogan/cli-development-tools/actions/workflows/deploy.yml)
+[![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)](#5-getting-started--verification)
+[![Security (CodeQL)](https://github.com/Freddricklogan/cli-development-tools/actions/workflows/codeql.yml/badge.svg)](https://github.com/Freddricklogan/cli-development-tools/actions/workflows/codeql.yml)
+[![License MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
+## 1. Executive Summary & Business Impact
 
-A collection of five command-line tools for common development tasks, built with Node.js and Python.
+**Problem statement.** The repository held five scripts in two
+languages with ten unpinned dependencies, spinners and prompts woven
+through the logic, a 390-line dev server nobody could test, a git
+helper that ran shell strings built from user input, and a file
+organiser whose dry run and real run were the same loop.
+None of it was tested, installable as one tool, or published
+(`AUDIT.md`).
 
-## Tools
+**Solution & value delivered.** `devkit`, one TypeScript command on
+one runtime dependency: `api` sends a request, times it and evaluates
+assertions with a meaningful exit code; `serve` serves a directory with
+SPA fallback, listings and paths that cannot escape the root; `git`
+lists branches with ahead/behind, finds stale branches, counts status,
+and validates Conventional Commits messages as a hook; `gen` scaffolds
+projects from templates without overwriting; `organize` plans category
+moves and duplicate removal as a dry run and applies them safely.
+Pure library modules at 100 % statement coverage, an end-to-end test on
+the built binary, `npm publish --dry-run` and a CycloneDX SBOM in CI.
 
-### API Tester (`api_tester.js`)
-Interactive HTTP client for testing REST APIs. Supports GET, POST, PUT, PATCH, DELETE with custom headers, request body, authentication, and response history.
+**[→ Read the full case study](docs/CASE_STUDY.md)**
 
-```bash
-node api_tester.js test https://api.example.com/users --method GET
-node api_tester.js test https://api.example.com/users --method POST --body '{"name":"Fred"}'
-node api_tester.js history   # View past requests
+## 2. Demonstrated Competencies & Technical Skills
+
+- **Developer Experience** — commander-based CLI with consistent
+  `--json` output and exit codes, three project templates, a
+  `commit-msg`-compatible validator.
+- **Supply-Chain Hygiene** — one runtime dependency, committed
+  lockfile, `npm audit` on the production tree, CycloneDX 1.6 SBOM
+  artefact, publish dry-run on every build.
+- **Security** — traversal-safe static serving tested against encoded
+  segments and NUL bytes, `execFile` with argument arrays instead of
+  shell strings, never-overwrite file operations.
+- **Engineering Practice** — strict TypeScript, typed ESLint, 26 Vitest
+  tests, library/binding separation so logic is testable without I/O.
+
+## 3. System Architecture & Data Flow
+
+```mermaid
+flowchart LR
+  subgraph TB0["Trust Boundary: the developer's machine"]
+    CLI["dist/cli.js (commander)"]:::client
+    subgraph CMD["src/commands (bind options → library)"]
+      A["api"]:::client
+      S["serve"]:::client
+      G["git"]:::client
+      GEN["gen"]:::client
+      O["organize"]:::client
+    end
+    subgraph LIB["src/lib — pure, 100% stmts"]
+      H["http.ts<br/>buildSpec · parseAssertion · run"]:::service
+      SV["serve.ts<br/>resolveSafe · resolveRequest · listingHtml"]:::service
+      GT["git.ts<br/>parseBranches · staleBranches · checkCommitMessage · parseStatus"]:::service
+      GE["generate.ts<br/>renderTemplate · writeRendered"]:::service
+      OR["organize.ts<br/>scan · plan · apply"]:::service
+    end
+    T[("templates/<br/>node-lib · python-pkg · static-site")]:::data
+  end
+  NET["HTTP services"]:::security
+  GIT["git (execFile)"]:::security
+  CLI --> A --> H --> NET
+  CLI --> S --> SV
+  CLI --> G --> GT --> GIT
+  CLI --> GEN --> GE --> T
+  CLI --> O --> OR
+  classDef client fill:#1f2a44,stroke:#58A6FF,color:#e6edf3
+  classDef service fill:#14213d,stroke:#3fb950,color:#e6edf3
+  classDef data fill:#2b1d3a,stroke:#d2a8ff,color:#e6edf3
+  classDef security fill:#3a1f1f,stroke:#f85149,color:#e6edf3
 ```
 
-### Dev Server (`dev_server.js`)
-Local development server with live reload, CORS support, and directory listing. Serves static files with automatic file watching.
+## 4. Technical Highlights & Engineering Decisions
 
-```bash
-node dev_server.js start --port 3000 --dir ./public
-node dev_server.js start --cors --watch
-```
+### ADR-1 — Library and binding layers
 
-### File Organizer (`file_organizer.py`)
-Sorts files into folders by type or date. Includes duplicate detection (MD5 hash), empty folder cleanup, and directory statistics.
+**Context.** Logic interleaved with prompts and spinners could not be
+tested.
 
-```bash
-python3 file_organizer.py type ~/Downloads ~/Organized
-python3 file_organizer.py date ~/Photos ~/Photos-by-date --format "%Y/%m"
-python3 file_organizer.py duplicates ~/Documents
-python3 file_organizer.py stats ~/Downloads
-```
+**Decision.** Every decision the tool makes is a function in
+`src/lib/` that takes data and returns data — a request spec, a resolved
+path, a plan of moves. `src/commands/` only reads options, calls the
+library and prints.
 
-### Git Helper (`git_helper.js`)
-Streamlines common git workflows -- interactive staging, commit message generation, branch management, and status overview.
+**Consequence.** 100 % statement coverage of the library with fakes
+for `fetch`; the binary is exercised end to end in four tests.
 
-```bash
-node git_helper.js status
-node git_helper.js commit -m "Add feature"
-node git_helper.js branch list
-```
+### ADR-2 — One dependency
 
-### Project Generator (`project_generator.js`)
-Scaffolds new projects from templates. Includes Node.js, React, Express, Python CLI, and static site templates with boilerplate files and directory structure.
+**Context.** Ten unpinned packages for colour, prompts, spinners, ASCII
+art and HTTP.
 
-```bash
-node project_generator.js generate react-app my-project
-node project_generator.js list          # Show available templates
-node project_generator.js interactive   # Guided setup
-```
+**Decision.** `commander` only; `fetch`, `node:http`, `node:fs`,
+`node:crypto` and `execFile` do the rest. SBOM and `npm audit` on the
+production tree run in CI.
 
-## Setup
+**Consequence.** The SBOM lists one component; the audit reports zero
+vulnerabilities; the published tarball is 22 kB.
+
+### ADR-3 — Safe by default
+
+**Context.** The old server was untested; the old organiser invented
+names on collision and planned while moving; the old git helper built
+shell strings.
+
+**Decision.** `resolveSafe` normalises and confines paths; `organize`
+is a dry run unless `--apply`, and `apply` never overwrites; git runs
+through `execFile` with an argument array.
+
+**Consequence.** Tests pin each property, including `..`, `%2e%2e`,
+`%00` and a collision that is reported rather than clobbered.
+
+## 5. Getting Started & Verification
+
+**Prerequisites.** Node 22.
 
 ```bash
 git clone https://github.com/Freddricklogan/cli-development-tools.git
 cd cli-development-tools
-npm install
+npm ci && npm run check                     # lint, typecheck, tests, build
+npm link                                    # or: npm pack && npm i -g ./freddricklogan-devkit-1.0.0.tgz
+devkit --help
+devkit api https://api.github.com/repos/Freddricklogan/cli-development-tools -a status=200 -a 'json:name=cli-development-tools' -a 'time<5000'
+devkit serve ./site --spa --port 8080
+devkit git stale --days 30
+devkit git check-commit .git/COMMIT_EDITMSG   # usable as a commit-msg hook
+devkit gen python-pkg my-package --out ~/code
+devkit organize ~/Downloads --dedupe          # dry run; add --apply to move files
 ```
 
-**Requirements:** Node.js 14+, Python 3.6+
+**Verification — the numbers this repository actually produced:**
 
-## Dependencies
+| Check | Result |
+| --- | --- |
+| Tests (Vitest) | **26 passed / 26** across 6 files (22 unit, 4 end-to-end on the built binary) |
+| Coverage (`src/lib`) | **100%** statements, 86.5% branches |
+| ESLint (typed), tsc --noEmit | clean |
+| `npm publish --dry-run` | tarball `@freddricklogan/devkit@1.0.0`, 22.4 kB packed / 77.8 kB unpacked, 50 files |
+| SBOM | CycloneDX 1.6, 1 production component |
+| `npm audit --omit=dev` | 0 vulnerabilities |
+| Live check | `devkit api` against the GitHub API: 200 in 513 ms, all four assertions passed |
 
-- **chalk** -- Terminal colors
-- **commander** -- CLI argument parsing
-- **inquirer** -- Interactive prompts
-- **axios** -- HTTP requests
-- **express** -- Dev server
-- **ora** -- Loading spinners
-- **chokidar** -- File watching
-- **fs-extra** -- File operations
-- **figlet** -- ASCII art headers
+## 6. Live Demo & Production Showcase
 
-## License
-
-MIT
+No web page: the artefact is a command-line package. Install from the
+repository as above, or from a tarball built by `npm pack`. Publishing
+to the npm registry requires an npm account and is not automated; CI
+runs `npm publish --dry-run` on every build so the package is always
+publishable.

@@ -1,44 +1,35 @@
 {
-  "name": "cli-tools-collection",
+  "name": "@freddricklogan/devkit",
   "version": "1.0.0",
-  "description": "Collection of useful command-line tools built with Node.js",
-  "main": "index.js",
-  "scripts": {
-    "dev-server": "node dev_server.js",
-    "git-helper": "node git_helper.js",
-    "project-gen": "node project_generator.js",
-    "api-tester": "node api_tester.js"
-  },
-  "bin": {
-    "dev-server": "./dev_server.js",
-    "git-helper": "./git_helper.js",
-    "project-gen": "./project_generator.js",
-    "api-tester": "./api_tester.js"
-  },
-  "keywords": [
-    "cli",
-    "tools",
-    "development",
-    "productivity"
-  ],
-  "author": "Developer",
+  "description": "One command-line tool for five development chores: HTTP request testing with assertions, a static dev server with SPA fallback, git branch and commit-message checks, project scaffolding from templates, and a file organiser with dry-run and duplicate detection.",
+  "type": "module",
   "license": "MIT",
+  "author": "Freddrick Logan",
+  "repository": { "type": "git", "url": "git+https://github.com/Freddricklogan/cli-development-tools.git" },
+  "bin": { "devkit": "./dist/cli.js" },
+  "files": ["dist", "templates", "README.md", "LICENSE"],
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && chmod +x dist/cli.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "coverage": "vitest run --coverage",
+    "sbom": "cyclonedx-npm --output-format JSON --output-file sbom.cdx.json --omit dev",
+    "check": "npm run lint && npm run typecheck && npm test -- --run && npm run build"
+  },
   "dependencies": {
-    "chalk": "^4.1.2",
-    "commander": "^9.4.1",
-    "inquirer": "^8.2.5",
-    "axios": "^1.4.0",
-    "fs-extra": "^11.1.1",
-    "ora": "^5.4.1",
-    "figlet": "^1.6.0",
-    "express": "^4.18.2",
-    "cors": "^2.8.5",
-    "chokidar": "^3.5.3"
+    "commander": "^13.1.0"
   },
   "devDependencies": {
-    "nodemon": "^2.0.22"
-  },
-  "engines": {
-    "node": ">=14.0.0"
+    "@cyclonedx/cyclonedx-npm": "^2.0.0",
+    "@eslint/js": "^9.0.0",
+    "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "^3.0.0",
+    "eslint": "^9.0.0",
+    "globals": "^16.0.0",
+    "typescript": "^5.6.0",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^3.0.0"
   }
 }
